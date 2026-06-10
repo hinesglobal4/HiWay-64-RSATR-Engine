@@ -1,0 +1,36 @@
+// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © hinesglobal4
+
+//@version=6
+indicator("HiWay RS plus ATR", shorttitle="HiWayRSATR", overlay=false)
+
+// ───── Inputs ─────
+benchmark     = input.symbol("SPY", "Benchmark")
+rsLength      = input.int(14, "RS Lookback")
+atrLength     = input.int(14, "ATR Length")
+smoothLength  = input.int(5, "Smoothing Length")
+useEMA        = input.bool(true, "Use EMA Smoothing")
+
+// ───── Price Data ─────
+stockClose     = close
+benchmarkClose = request.security(benchmark, timeframe.period, close)
+
+// ───── Relative Strength (Return‑Based) ─────
+stockReturn     = (stockClose / stockClose[rsLength] - 1)
+benchmarkReturn = (benchmarkClose / benchmarkClose[rsLength] - 1)
+
+relativeStrength = stockReturn - benchmarkReturn
+
+// ───── ATR Normalization ─────
+atrValue = ta.atr(atrLength)
+rsATR    = relativeStrength / atrValue
+
+// ───── Optional Smoothing ─────
+rsATR_smoothed = useEMA ? ta.ema(rsATR, smoothLength) : ta.sma(rsATR, smoothLength)
+
+// ───── Plot ─────
+plot(rsATR_smoothed, title="ATR‑Adjusted Relative Strength",
+     color = rsATR_smoothed >= 0 ? color.lime : color.red,
+     linewidth=2)
+
+hline(0, "Zero Line", color=color.gray)
