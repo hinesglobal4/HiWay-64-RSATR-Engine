@@ -179,7 +179,7 @@ class RSATREngine:
             benchmark_df: DataFrame with 'close' column
             
         Returns:
-            DataFrame with RS+ATR values
+            DataFrame with RS+ATR values and regime classification
         """
         stock_data = {
             'high': stock_df['high'].values,
@@ -194,6 +194,7 @@ class RSATREngine:
         
         result_df = stock_df.copy()
         result_df['rs_atr'] = rs_atr_values
-        result_df['signal'] = np.where(rs_atr_values >= 0, 1, -1)  # 1=bullish, -1=bearish
+        # Regime classification: 1 = bullish regime (outperforming), -1 = bearish regime (underperforming)
+        result_df['regime'] = np.where(rs_atr_values >= 0, 1, -1)
         
         return result_df
