@@ -3,7 +3,12 @@ HiWay RS+ATR Engine - REST API for Dashboard Integration
 Provides HTTP endpoints for external systems (MetaTrader, ThinkorSwim, etc.)
 """
 
-from flask import Flask, jsonify, request, Blueprint
+from flask import (
+    Flask,
+    jsonify,
+    request,
+    render_template
+)
 from typing import Optional, Dict, Any
 import pandas as pd
 from datetime import datetime
@@ -24,10 +29,27 @@ class RSATRRestAPI:
     
     def _setup_routes(self):
         """Setup Flask routes"""
+
+        @self.app.route('/')
+        def home():
+            return render_template('index.html')
         
         @self.app.route('/health', methods=['GET'])
         def health():
             return jsonify({'status': 'healthy', 'timestamp': datetime.utcnow().isoformat()})
+
+        @self.app.route('/docs')
+        def docs():
+            return jsonify({
+                'service': 'HiWay RS+ATR Engine',
+                'version': '1.0.0',
+                'endpoints': {
+                    'calculate': '/api/v1/calculate',
+                    'snapshot': '/api/v1/snapshot',
+                    'config': '/api/v1/config',
+                    'health': '/health'
+                }
+            })
         
         @self.app.route('/api/v1/calculate', methods=['POST'])
         def calculate():
