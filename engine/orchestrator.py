@@ -110,13 +110,13 @@ class HiWayEngine:
             
             latest = result_df.iloc[-1]
             rs_atr_value = latest['rs_atr']
-            signal = 1 if rs_atr_value >= 0 else -1
+            regime = 1 if rs_atr_value >= 0 else -1
             
             return {
                 'symbol': symbol,
                 'benchmark': benchmark,
                 'rs_atr': float(rs_atr_value),
-                'signal': signal,
+                'regime': regime,
                 'price': float(latest['close']),
                 'timestamp': latest.name.isoformat() if hasattr(latest.name, 'isoformat') else str(latest.name)
             }
@@ -197,7 +197,8 @@ if __name__ == '__main__':
         
         for result in results:
             if 'error' not in result:
-                print(f"{result['symbol']}: RS+ATR={result['rs_atr']:.4f}, Signal={result['signal']}")
+                regime_label = "Bullish Regime" if result['regime'] > 0 else "Bearish Regime"
+                print(f"{result['symbol']}: RS+ATR={result['rs_atr']:.4f}, {regime_label}")
             else:
                 print(f"{result['symbol']}: Error - {result['error']}")
         
