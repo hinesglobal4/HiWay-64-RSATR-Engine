@@ -1,0 +1,204 @@
+"""
+HiWay RS+ATR Engine - REST API for Dashboard Integration
+Provides HTTP endpoints for external systems (MetaTrader, ThinkorSwim, etc.)
+"""
+
+from flask import Flask, jsonify, request, Blueprint
+from typing import Optional, Dict, Any
+import pandas as pd
+from datetime import datetime
+import json
+
+# Import engine components
+from hiway_rs_atr_core import RSATREngine, RSATRConfig
+from data_provider import DataAggregator, AlpacaDataProvider, YahooFinanceDataProvider
+
+
+class RSATRRestAPI:
+    """REST API wrapper for RSATR engine"""
+    
+    def __init__(self, engine: RSATREngine, data_provider):
+        self.engine = engine
+        self.data_provider = data_provider
+        self.app = Flask(__name__)
+        self._setup_routes()
+    
+    def _setup_routes(self):
+        """Setup Flask routes"""
+        
+        @self.app.route('/health', methods=['GET'])
+        def health():
+            return jsonify({'status': 'healthy', 'timestamp': datetime.utcnow().isoformat()})
+        
+        @self.app.route('/api/v1/calculate', methods=['POST'])
+        def calculate():
+            """
+            Calculate RS+ATR for symbol
+            Request: {
+                "symbol": "AAPL",
+                "benchmark": "SPY",
+                "timeframe": "1d",
+                "bars": 500
+            }
+            """
+            try:
+                data = request.get_json()
+                symbol = data.get('symbol', 'AAPL')
+                benchmark = data.get('benchmark', 'SPY')
+                timeframe = data.get('timeframe', '1d')
+                bars = data.get('bars', 500)
+                
+                stock_df = self.data_provider.get_bars(symbol, timeframe, bars)
+                benchmark_df = self.data_provider.get_bars(benchmark, timeframe, bars)
+                
+                result_df = self.engine.calculate_dataframe(stock_df, benchmark_df)
+                
+                return jsonify({
+                    'symbol': symbol,
+                    'benchmark': benchmark,
+                    'timeframe': timeframe,
+                    'timestamp': datetime.utcnow().isoformat(),
+                    'current': {
+                        'rs_atr': float(result_df['rs_atr'].iloc[-1]),
+                        'signal': int(result_df['signal'].iloc[-1]),
+                        'close': float(result_df['close'].iloc[-1])
+                    },
+                    'data': result_df[['open', 'high', 'low', 'close', 'rs_atr', 'signal']]
+                               .tail(50).to_dict('records')
+                })
+            except Exception as e:
+                return jsonify({'error': str(e)}), 400
+        
+        @self.app.route('/api/v1/snapshot', methods=['GET'])
+        def snapshot():
+            """
+            Get current snapshot for multiple symbols
+            Query: ?symbols=AAPL,MSFT,GOOGL&benchmark=SPY
+            """
+            try:
+                symbols = request.args.get('symbols', 'AAPL').split(',')
+                benchmark = request.args.get('benchmark', 'SPY')
+                timeframe = request.args.get('timeframe', '1d')
+                
+                results = []
+                benchmark_df = self.data_provider.get_bars(benchmark, timeframe, 500)
+                
+                for symbol in symbols:
+                    stock_df = self.data_provider.get_bars(symbol, timeframe, 500)
+                    result_df = self.engine.calculate_dataframe(stock_df, benchmark_df)
+                    
+                    results.append({
+                        'symbol': symbol,
+                        'rs_atr': float(result_df['rs_atr'].iloc[-1]),
+                        'signal': int(result_df['signal'].iloc[-1]),
+                        'price': float(result_df['close'].iloc[-1]),
+                        'timestamp': datetime.utcnow().isoformat()
+                    })
+                
+                return jsonify({'snapshots': results})
+            except Exception as e:
+                return jsonify({'error': str(e)}), 400
+        
+        @self.app.route('/api/v1/config', methods=['GET', 'POST'])
+        def config():
+            """Get/set engine configuration"""
+            if request.method == 'GET':
+                return jsonify({
+                    'rs_lookback': self.engine.config.rs_lookback,
+                    'atr_length': self.engine.config.atr_length,
+                    'smoothing_length': self.engine.config.smoothing_length,
+                    'use_ema': self.engine.config.use_ema
+                })
+            else:
+                data = request.get_json()
+                self.engine.config = RSATRConfig(
+                    rs_lookback=data.get('rs_lookback', 14),
+                    atr_length=data.get('atr_length', 14),
+                    smoothing_length=data.get('smoothing_length', 5),
+                    use_ema=data.get('use_ema', True)
+                )
+                return jsonify({'status': 'updated'})
+    
+    def run(self, host: str = '0.0.0.0', port: int = 5000, debug: bool = False):
+        """Start Flask server"""
+        self.app.run(host=host, port=port, debug=debug)
+
+
+class MetaTraderBridge:
+    """Bridge for MetaTrader 5 integration via WebSocket"""
+    
+    def __init__(self, engine: RSATREngine):
+        self.engine = engine
+    
+    async def handle_mt5_request(self, symbol: str, timeframe: str) -> Dict[str, Any]:
+        """Handle MT5 indicator request"""
+        # This would connect to MT5's data and return values
+        # MT5 would call via websocket or TCP
+        return {
+            'symbol': symbol,
+            'rs_atr': 0.0,
+            'signal': 0,
+            'timestamp': datetime.utcnow().isoformat()
+        }
+
+
+class ThinkorSwimBridge:
+    """Bridge for TD Ameritrade ThinkorSwim integration"""
+    
+    def __init__(self, engine: RSATREngine):
+        self.engine = engine
+    
+    async def publish_scan_result(self, symbol: str, rs_atr: float, 
+                                 signal: int, price: float):
+        """Publish scan results back to ThinkorSwim"""
+        # ThinkorSwim could consume via webhook/API
+        return {
+            'status': 'published',
+            'symbol': symbol,
+            'rs_atr': rs_atr,
+            'signal': signal
+        }
+
+
+# Example usage and integration
+def create_api_server(config_dict: Dict[str, Any] = None) -> Flask:
+    """Factory function to create configured API server"""
+    
+    # Default config
+    config = config_dict or {
+        'data_provider': 'yahoo',  # 'alpaca', 'polygon', 'yahoo'
+        'rs_lookback': 14,
+        'atr_length': 14,
+        'smoothing_length': 5,
+        'use_ema': True
+    }
+    
+    # Initialize engine
+    engine_config = RSATRConfig(
+        rs_lookback=config['rs_lookback'],
+        atr_length=config['atr_length'],
+        smoothing_length=config['smoothing_length'],
+        use_ema=config['use_ema']
+    )
+    engine = RSATREngine(engine_config)
+    
+    # Initialize data provider
+    if config['data_provider'] == 'yahoo':
+        data_provider = YahooFinanceDataProvider()
+    elif config['data_provider'] == 'alpaca':
+        data_provider = AlpacaDataProvider(
+            config.get('alpaca_key'),
+            config.get('alpaca_secret')
+        )
+    else:
+        data_provider = YahooFinanceDataProvider()
+    
+    # Create API
+    api = RSATRRestAPI(engine, data_provider)
+    
+    return api.app
+
+
+if __name__ == '__main__':
+    api_app = create_api_server()
+    api_app.run(host='0.0.0.0', port=5000, debug=True)
