@@ -5,6 +5,17 @@
     /static/style.css
 </head>
 <body>
+    <div class="hero">
+
+    <h1>HiWay RS+ATR Engine</h1>
+
+    <p>
+        Volatility-Adjusted Relative Strength Analysis
+        for traders, quantitative researchers,
+        and portfolio analysts.
+    </p>
+
+</div>
 
 <div class="container">
 
@@ -24,6 +35,26 @@
             placeholder="AAPL"
         >
 
+        <div class="quick-buttons">
+
+    <button onclick="setSymbol('AAPL')">
+        AAPL
+    </button>
+
+    <button onclick="setSymbol('MSFT')">
+        MSFT
+    </button>
+
+    <button onclick="setSymbol('TSLA')">
+        TSLA
+    </button>
+
+    <button onclick="setSymbol('NVDA')">
+        NVDA
+    </button>
+
+</div>
+
         <button onclick="analyze()">
             Analyze
         </button>
@@ -35,6 +66,10 @@
 </div>
 
 <script>
+
+function setSymbol(symbol) {
+    document.getElementById("symbol").value = symbol;
+}
 
 async function analyze() {
 
