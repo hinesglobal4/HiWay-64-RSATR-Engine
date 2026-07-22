@@ -1,0 +1,31 @@
+body {
+    background:#111827;
+    color:white;
+    font-family:Arial;
+}
+
+.container{
+    max-width:900px;
+    margin:auto;
+    padding:40px;
+}
+
+.card{
+    background:#1f2937;
+    padding:20px;
+    border-radius:10px;
+    margin-top:20px;
+}
+
+input{
+    padding:10px;
+    width:200px;
+}
+
+button{
+    padding:10px 20px;
+    background:#10b981;
+    border:none;
+    color:white;
+    cursor:pointer;
+}
