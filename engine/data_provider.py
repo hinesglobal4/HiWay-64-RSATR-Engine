@@ -105,7 +105,6 @@ class PolygonDataProvider(DataProvider):
     def get_bars(self, symbol: str, timeframe: str, limit: int = 500) -> List[BarData]:
         """Fetch bars from Polygon"""
         try:
-            # Map common timeframe strings to Polygon format
             timeframe_map = {'1min': '1', '5min': '5', '15min': '15', 
                            '1h': '60', '1d': 'day'}
             poly_timeframe = timeframe_map.get(timeframe, timeframe)
@@ -160,7 +159,6 @@ class YahooFinanceDataProvider(DataProvider):
     def get_bars(self, symbol: str, timeframe: str, limit: int = 500) -> List[BarData]:
         """Fetch bars from Yahoo Finance"""
         try:
-            # Map timeframe to yfinance format
             period_map = {'1d': f'{limit}d', '1h': '60d', '15min': '60d'}
             period = period_map.get(timeframe, '1y')
             

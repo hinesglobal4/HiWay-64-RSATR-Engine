@@ -9,10 +9,10 @@ from dataclasses import dataclass, field
 from enum import Enum
 import logging
 
-from hiway_rs_atr_core import RSATREngine, RSATRConfig
-from data_provider import DataAggregator, YahooFinanceDataProvider, AlpacaDataProvider
-from stream_processor import StreamProcessor, IndicatorStreamAdapter, WebSocketHandler
-from rest_api import RSATRRestAPI
+from .hiway_rs_atr_core import RSATREngine, RSATRConfig
+from .data_provider import DataAggregator, YahooFinanceDataProvider, AlpacaDataProvider
+from .stream_processor import StreamProcessor, CircularBuffer
+from .rest_api import RSATRRestAPI
 
 
 class EngineState(Enum):
@@ -44,14 +44,11 @@ class HiWayEngine:
         self.state = EngineState.IDLE
         self.metrics = EngineMetrics()
         
-        # Components
         self.rsatr_engine: Optional[RSATREngine] = None
         self.data_provider: Optional[DataAggregator] = None
         self.stream_processor: Optional[StreamProcessor] = None
         self.rest_api: Optional[RSATRRestAPI] = None
-        self.ws_handler: Optional[WebSocketHandler] = None
         
-        # Logging
         self.logger = logging.getLogger(__name__)
         logging.basicConfig(level=logging.INFO)
     
@@ -61,7 +58,6 @@ class HiWayEngine:
         self.logger.info("Initializing HiWay RSATR Engine...")
         
         try:
-            # Initialize core engine
             rsatr_config = RSATRConfig(
                 rs_lookback=self.config.get('rs_lookback', 14),
                 atr_length=self.config.get('atr_length', 14),
@@ -71,7 +67,6 @@ class HiWayEngine:
             self.rsatr_engine = RSATREngine(rsatr_config)
             self.logger.info("Core engine initialized")
             
-            # Initialize data provider
             provider_type = self.config.get('data_provider', 'yahoo')
             if provider_type == 'yahoo':
                 primary = YahooFinanceDataProvider()
@@ -86,19 +81,13 @@ class HiWayEngine:
             self.data_provider = DataAggregator(primary, fallback_providers=[])
             self.logger.info(f"Data provider initialized: {provider_type}")
             
-            # Initialize stream processor
             self.stream_processor = StreamProcessor(
                 buffer_size=self.config.get('buffer_size', 1000)
             )
             self.logger.info("Stream processor initialized")
             
-            # Initialize REST API
             self.rest_api = RSATRRestAPI(self.rsatr_engine, self.data_provider)
             self.logger.info("REST API initialized")
-            
-            # Initialize WebSocket handler
-            self.ws_handler = WebSocketHandler(self.stream_processor)
-            self.logger.info("WebSocket handler initialized")
             
             self.state = EngineState.RUNNING
             self.logger.info("HiWay RSATR Engine ready")
@@ -143,11 +132,6 @@ class HiWayEngine:
         tasks = [self.calculate_symbol(sym, benchmark, timeframe) for sym in symbols]
         return await asyncio.gather(*tasks)
     
-    async def stream_update(self, symbol: str, benchmark: str = "SPY"):
-        """Start streaming updates for a symbol"""
-        if self.ws_handler and self.config.get('stream_enabled', False):
-            await self.ws_handler.connect_alpaca(self.config.get('alpaca_key'))
-    
     def get_status(self) -> Dict[str, Any]:
         """Get engine status"""
         return {
@@ -170,7 +154,6 @@ class HiWayEngine:
         """Gracefully shutdown engine"""
         self.logger.info("Shutting down HiWay RSATR Engine...")
         self.state = EngineState.SHUTDOWN
-        # Cleanup resources
         self.logger.info("Engine shutdown complete")
     
     def start_rest_api(self, host: str = '0.0.0.0', port: int = 5000):
@@ -179,7 +162,6 @@ class HiWayEngine:
         self.rest_api.run(host, port, debug=self.config.get('debug', False))
 
 
-# Example usage and integration factory
 def create_engine(config: Dict[str, Any] = None) -> HiWayEngine:
     """Factory function to create configured engine"""
     default_config = {
@@ -199,39 +181,32 @@ def create_engine(config: Dict[str, Any] = None) -> HiWayEngine:
     return HiWayEngine(default_config)
 
 
-# CLI/Demo
 if __name__ == '__main__':
     import sys
     
     async def main():
-        # Create engine
         engine = create_engine({
             'data_provider': 'yahoo',
             'stream_enabled': False
         })
         
-        # Initialize
         await engine.initialize()
         
-        # Calculate for multiple symbols
         symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA']
         results = await engine.calculate_batch(symbols)
         
-        # Print results
         for result in results:
             if 'error' not in result:
                 print(f"{result['symbol']}: RS+ATR={result['rs_atr']:.4f}, Signal={result['signal']}")
             else:
                 print(f"{result['symbol']}: Error - {result['error']}")
         
-        # Print status
         print("\nEngine Status:")
         status = engine.get_status()
         print(f"  State: {status['state']}")
         print(f"  Total Calculations: {status['metrics']['total_calculations']}")
         print(f"  Failed: {status['metrics']['failed_calculations']}")
         
-        # Shutdown
         await engine.shutdown()
     
     asyncio.run(main())

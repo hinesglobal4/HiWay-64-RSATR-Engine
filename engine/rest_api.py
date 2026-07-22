@@ -9,9 +9,8 @@ import pandas as pd
 from datetime import datetime
 import json
 
-# Import engine components
-from hiway_rs_atr_core import RSATREngine, RSATRConfig
-from data_provider import DataAggregator, AlpacaDataProvider, YahooFinanceDataProvider
+from .hiway_rs_atr_core import RSATREngine, RSATRConfig
+from .data_provider import DataAggregator, AlpacaDataProvider, YahooFinanceDataProvider
 
 
 class RSATRRestAPI:
@@ -32,15 +31,6 @@ class RSATRRestAPI:
         
         @self.app.route('/api/v1/calculate', methods=['POST'])
         def calculate():
-            """
-            Calculate RS+ATR for symbol
-            Request: {
-                "symbol": "AAPL",
-                "benchmark": "SPY",
-                "timeframe": "1d",
-                "bars": 500
-            }
-            """
             try:
                 data = request.get_json()
                 symbol = data.get('symbol', 'AAPL')
@@ -71,10 +61,6 @@ class RSATRRestAPI:
         
         @self.app.route('/api/v1/snapshot', methods=['GET'])
         def snapshot():
-            """
-            Get current snapshot for multiple symbols
-            Query: ?symbols=AAPL,MSFT,GOOGL&benchmark=SPY
-            """
             try:
                 symbols = request.args.get('symbols', 'AAPL').split(',')
                 benchmark = request.args.get('benchmark', 'SPY')
@@ -101,7 +87,6 @@ class RSATRRestAPI:
         
         @self.app.route('/api/v1/config', methods=['GET', 'POST'])
         def config():
-            """Get/set engine configuration"""
             if request.method == 'GET':
                 return jsonify({
                     'rs_lookback': self.engine.config.rs_lookback,
@@ -124,56 +109,17 @@ class RSATRRestAPI:
         self.app.run(host=host, port=port, debug=debug)
 
 
-class MetaTraderBridge:
-    """Bridge for MetaTrader 5 integration via WebSocket"""
-    
-    def __init__(self, engine: RSATREngine):
-        self.engine = engine
-    
-    async def handle_mt5_request(self, symbol: str, timeframe: str) -> Dict[str, Any]:
-        """Handle MT5 indicator request"""
-        # This would connect to MT5's data and return values
-        # MT5 would call via websocket or TCP
-        return {
-            'symbol': symbol,
-            'rs_atr': 0.0,
-            'signal': 0,
-            'timestamp': datetime.utcnow().isoformat()
-        }
-
-
-class ThinkorSwimBridge:
-    """Bridge for TD Ameritrade ThinkorSwim integration"""
-    
-    def __init__(self, engine: RSATREngine):
-        self.engine = engine
-    
-    async def publish_scan_result(self, symbol: str, rs_atr: float, 
-                                 signal: int, price: float):
-        """Publish scan results back to ThinkorSwim"""
-        # ThinkorSwim could consume via webhook/API
-        return {
-            'status': 'published',
-            'symbol': symbol,
-            'rs_atr': rs_atr,
-            'signal': signal
-        }
-
-
-# Example usage and integration
 def create_api_server(config_dict: Dict[str, Any] = None) -> Flask:
     """Factory function to create configured API server"""
     
-    # Default config
     config = config_dict or {
-        'data_provider': 'yahoo',  # 'alpaca', 'polygon', 'yahoo'
+        'data_provider': 'yahoo',
         'rs_lookback': 14,
         'atr_length': 14,
         'smoothing_length': 5,
         'use_ema': True
     }
     
-    # Initialize engine
     engine_config = RSATRConfig(
         rs_lookback=config['rs_lookback'],
         atr_length=config['atr_length'],
@@ -182,7 +128,6 @@ def create_api_server(config_dict: Dict[str, Any] = None) -> Flask:
     )
     engine = RSATREngine(engine_config)
     
-    # Initialize data provider
     if config['data_provider'] == 'yahoo':
         data_provider = YahooFinanceDataProvider()
     elif config['data_provider'] == 'alpaca':
@@ -193,7 +138,6 @@ def create_api_server(config_dict: Dict[str, Any] = None) -> Flask:
     else:
         data_provider = YahooFinanceDataProvider()
     
-    # Create API
     api = RSATRRestAPI(engine, data_provider)
     
     return api.app

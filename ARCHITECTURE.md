@@ -6,14 +6,14 @@ Complete production-grade translation of Pine Script RSATR indicator to Python +
 ## Architecture Stack Layers
 
 ### Layer 1: CALCULATION ENGINE (Core Logic)
-- **File**: `engine/hiway_rs_atr_core.py` + `engine/hiway_rs_atr.cpp`
+- **File**: `engine/hiway_rs_atr_core.py`
 - **Components**:
   - `RSATREngine` - Main calculation orchestrator
   - `ATRCalculator` - Wilder's smoothed ATR
   - `RelativeStrengthCalculator` - Return-based RS (stock vs benchmark)
   - `SmoothingCalculator` - EMA/SMA smoothing
 - **Purpose**: Pure calculations, framework-agnostic
-- **Performance**: Python for flexibility, C++ for 10-100x speed on HFT workloads
+- **Performance**: Python with numpy optimization
 
 ---
 
@@ -34,8 +34,6 @@ Complete production-grade translation of Pine Script RSATR indicator to Python +
 - **Components**:
   - `StreamProcessor` - Circular buffers, event system
   - `CircularBuffer` - Memory-efficient ring buffer
-  - `IndicatorStreamAdapter` - Live bar → indicator mapping
-  - `WebSocketHandler` - Alpaca/Polygon WebSocket bridges
 - **Purpose**: Ingest tick/bar data, compute rolling indicators
 - **Features**: Async callbacks, configurable buffer size
 
@@ -51,7 +49,7 @@ Complete production-grade translation of Pine Script RSATR indicator to Python +
 - **Bridges**:
   - MetaTrader 5 (via WebSocket)
   - ThinkorSwim (via webhook)
-  - Thinkorswim, NinjaTrader, MotiveWave (via REST)
+  - Custom dashboards (via REST)
 - **Framework**: Flask (lightweight, easy to containerize)
 
 ---
@@ -80,7 +78,7 @@ User Dashboard
 REST API (Flask) [Port 5000]
     ↓
 HiWay Engine (Orchestrator)
-    ├→ Core Calc (Python/C++)
+    ├→ Core Calc (Python)
     ├→ Data Provider (Yahoo)
     └→ Stream Processor (disabled)
 ```
@@ -156,93 +154,19 @@ Optional Stack 3: Batch Scanner
 **Recommended Stack Breakdown:**
 
 | Tier | Stacks | Components | Purpose |
-|------|--------|-----------|---------|
+|------|--------|-----------|----------|
 | **Entry (Retail)** | 1 | Flask API + Orchestrator | Single-symbol trading |
 | **Professional** | 2-3 | REST + WebSocket + Batch | Multi-symbol, live + EOD |
 | **Enterprise** | 4-6 | Dedicated API, stream, calc, historical | Institutional grade |
-| **HFT/Premium** | 7+ | Per-symbol calculators, GPU acceleration, microsecond latency | Algorithmic hedging |
-
----
-
-## Docker Deployment (Simplified)
-
-```yaml
-# docker-compose.yml
-version: '3.8'
-services:
-  # Stack 1: API Server
-  api:
-    build: .
-    ports:
-      - "5000:5000"
-    environment:
-      - DATA_PROVIDER=alpaca
-      - ALPACA_KEY=${ALPACA_KEY}
-    depends_on:
-      - cache
-  
-  # Stack 2: Stream Processor
-  stream:
-    build: .
-    command: python -m engine.stream_processor
-    environment:
-      - ALPACA_KEY=${ALPACA_KEY}
-    depends_on:
-      - cache
-  
-  # Stack 3: Batch Calculator
-  batch:
-    build: .
-    command: python -m engine.orchestrator
-    environment:
-      - MODE=batch
-    depends_on:
-      - cache
-  
-  # Cache (Redis)
-  cache:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-```
-
----
-
-## Integration Examples
-
-### MetaTrader 5 (via Custom Indicator)
-```mql5
-// MT5 indicator calling HTTP endpoint
-string url = "http://localhost:5000/api/v1/calculate";
-// POST with symbol, benchmark
-// Receive rs_atr and signal back
-```
-
-### ThinkorSwim (via ThinkBack)
-```javascript
-// ThinkorSwim strategy consuming webhook
-def url = "http://localhost:5000/api/v1/snapshot?symbols=AAPL,MSFT";
-// GET latest RS+ATR values
-```
-
-### Custom Dashboard (React/Vue)
-```javascript
-// Real-time updates via WebSocket
-const ws = new WebSocket("ws://localhost:5002");
-ws.onmessage = (event) => {
-  const {symbol, rs_atr, signal} = JSON.parse(event.data);
-  updateChart(symbol, rs_atr);
-};
-```
+| **HFT/Premium** | 7+ | Per-symbol calculators, GPU acceleration | Algorithmic hedging |
 
 ---
 
 ## Performance Characteristics
 
 | Component | Throughput | Latency | Stack Count |
-|-----------|-----------|---------|------------|
+|-----------|-----------|---------|-------------|
 | Python Core | 1K calc/sec | 1-10ms | 1 |
-| C++ Core | 100K calc/sec | 0.1-1ms | 1 (optional) |
 | REST API (Flask) | 100 req/sec | 50-100ms | 1 |
 | Stream Processor | 1K bars/sec | 5-50ms | 1 |
 | Batch Processor | 10K bars/day | - | 1 |

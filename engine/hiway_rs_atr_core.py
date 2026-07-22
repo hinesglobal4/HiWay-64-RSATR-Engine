@@ -27,7 +27,7 @@ class ATRCalculator:
     def calculate(high: np.ndarray, low: np.ndarray, close: np.ndarray, 
                   period: int = 14) -> np.ndarray:
         """
-        Calculate ATR using standard method (Wilder's Smoothing)
+        Calculate ATR using Wilder's Smoothing
         
         Args:
             high: High prices array
@@ -45,7 +45,7 @@ class ATRCalculator:
         tr = np.max([tr1, tr2, tr3], axis=0)
         
         # Wilder's smoothing
-        atr = np.zeros_like(tr)
+        atr = np.zeros_like(tr, dtype=float)
         atr[period] = np.mean(tr[1:period+1])
         
         for i in range(period + 1, len(tr)):
@@ -115,8 +115,8 @@ class SmoothingCalculator:
 class RSATREngine:
     """Main HiWay RS+ATR calculation engine"""
     
-    def __init__(self, config: RSATRConfig):
-        self.config = config
+    def __init__(self, config: RSATRConfig = None):
+        self.config = config or RSATRConfig()
         self.atr_calc = ATRCalculator()
         self.rs_calc = RelativeStrengthCalculator()
         self.smooth_calc = SmoothingCalculator()

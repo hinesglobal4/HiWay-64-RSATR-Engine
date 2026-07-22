@@ -28,7 +28,7 @@ ENV FLASK_APP=engine/rest_api.py
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:5000/health')"
+    CMD python -c "import requests; requests.get('http://localhost:5000/health')" || exit 1
 
 # Default command: start Flask API
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "engine.rest_api:create_api_server()"]
