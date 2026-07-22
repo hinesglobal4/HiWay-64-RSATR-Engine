@@ -50,10 +50,10 @@ class RSATRRestAPI:
                     'timestamp': datetime.utcnow().isoformat(),
                     'current': {
                         'rs_atr': float(result_df['rs_atr'].iloc[-1]),
-                        'signal': int(result_df['signal'].iloc[-1]),
+                        'regime': int(result_df['regime'].iloc[-1]),
                         'close': float(result_df['close'].iloc[-1])
                     },
-                    'data': result_df[['open', 'high', 'low', 'close', 'rs_atr', 'signal']]
+                    'data': result_df[['open', 'high', 'low', 'close', 'rs_atr', 'regime']]
                                .tail(50).to_dict('records')
                 })
             except Exception as e:
@@ -76,7 +76,7 @@ class RSATRRestAPI:
                     results.append({
                         'symbol': symbol,
                         'rs_atr': float(result_df['rs_atr'].iloc[-1]),
-                        'signal': int(result_df['signal'].iloc[-1]),
+                        'regime': int(result_df['regime'].iloc[-1]),
                         'price': float(result_df['close'].iloc[-1]),
                         'timestamp': datetime.utcnow().isoformat()
                     })
