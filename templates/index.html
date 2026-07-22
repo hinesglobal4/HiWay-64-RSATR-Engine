@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HiWay RS+ATR Engine</title>
+    /static/style.css
+</head>
+<body>
+
+<div class="container">
+
+    <h1>HiWay RS+ATR Trade Engine</h1>
+
+    <p>
+        Relative Strength + ATR Regime Analysis
+    </p>
+
+    <div class="card">
+
+        <h2>Symbol Analysis</h2>
+
+        <input
+            type="text"
+            id="symbol"
+            placeholder="AAPL"
+        >
+
+        <button onclick="analyze()">
+            Analyze
+        </button>
+
+    </div>
+
+    <div id="results"></div>
+
+</div>
+
+<script>
+
+async function analyze() {
+
+    const symbol =
+        document.getElementById("symbol").value;
+
+    const response = await fetch(
+        "/api/v1/calculate",
+        {
+            method: "POST",
+            headers:{
+                "Content-Type":"application/json"
+            },
+            body: JSON.stringify({
+                symbol:symbol,
+                benchmark:"SPY",
+                timeframe:"1d",
+                bars:500
+            })
+        }
+    );
+
+    const data = await response.json();
+
+    document.getElementById("results").innerHTML =
+    `
+        <div class="card">
+            <h3>${data.symbol}</h3>
+
+            <p>RS+ATR:
+            <strong>${data.current.rs_atr}</strong>
+            </p>
+
+            <p>
+            Regime:
+            <strong>${data.current.regime}</strong>
+            </p>
+
+            <p>
+            Close:
+            <strong>${data.current.close}</strong>
+            </p>
+        </div>
+    `;
+}
+
+</script>
+
+</body>
+</html>
