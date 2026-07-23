@@ -167,10 +167,12 @@ def create_api_server(config_dict: Dict[str, Any] = None) -> Flask:
 
 import os
 
+app = create_api_server()
+
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
 
-    api_app.run(
+    app.run(
         host='0.0.0.0',
         port=port,
         debug=True
