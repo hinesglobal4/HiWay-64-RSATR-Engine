@@ -7,13 +7,13 @@
 body {
     background: #0f172a;
     color: #f8fafc;
-    font-family: Inter, Arial, sans-serif;
-    line-height: 1.6;
+    font-family: Inter, Segoe UI, Arial, sans-serif;
+    min-height: 100vh;
 }
 
 .hero {
     text-align: center;
-    padding: 60px 20px;
+    padding: 70px 20px;
     background: linear-gradient(
         135deg,
         #0f172a,
@@ -24,14 +24,14 @@ body {
 
 .hero h1 {
     font-size: 3rem;
-    margin-bottom: 15px;
     color: #10b981;
+    margin-bottom: 15px;
 }
 
 .hero p {
     max-width: 800px;
     margin: auto;
-    color: #cbd5e1;
+    color: #94a3b8;
     font-size: 1.1rem;
 }
 
@@ -44,23 +44,22 @@ body {
 .card {
     background: #1e293b;
     border: 1px solid #334155;
-    border-radius: 14px;
+    border-radius: 16px;
     padding: 25px;
     margin-bottom: 25px;
-    box-shadow: 0 4px 25px rgba(0,0,0,.25);
+    box-shadow: 0 10px 35px rgba(0,0,0,.25);
 }
 
 .card h2,
 .card h3 {
     margin-bottom: 15px;
-    color: #f8fafc;
 }
 
 input {
     width: 100%;
     max-width: 320px;
-    padding: 12px;
-    border-radius: 8px;
+    padding: 14px;
+    border-radius: 10px;
     border: 1px solid #475569;
     background: #0f172a;
     color: white;
@@ -76,13 +75,12 @@ button {
     background: #10b981;
     color: white;
     border: none;
+    border-radius: 10px;
     padding: 12px 20px;
-    border-radius: 8px;
-    margin-top: 12px;
-    margin-right: 8px;
     cursor: pointer;
     font-weight: 600;
-    transition: .2s;
+    margin-top: 12px;
+    transition: all .2s ease;
 }
 
 button:hover {
@@ -103,11 +101,11 @@ button:hover {
 }
 
 #results .card {
-    border-left: 5px solid #10b981;
+    border-left: 6px solid #10b981;
 }
 
 p {
-    margin-bottom: 10px;
+    margin-bottom: 12px;
 }
 
 a {
@@ -119,13 +117,23 @@ a:hover {
     text-decoration: underline;
 }
 
-strong {
-    color: white;
+.metric {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
 }
 
-.footer {
-    text-align: center;
-    color: #94a3b8;
-    margin-top: 50px;
-    padding: 20px;
+.bullish {
+    color: #10b981;
+    font-weight: 700;
+}
+
+.bearish {
+    color: #ef4444;
+    font-weight: 700;
+}
+
+.neutral {
+    color: #f59e0b;
+    font-weight: 700;
 }
