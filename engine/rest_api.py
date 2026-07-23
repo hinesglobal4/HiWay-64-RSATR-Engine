@@ -80,13 +80,13 @@ class RSATRRestAPI:
                 timeframe = data.get("timeframe", "1d")
                 bars = data.get("bars", 500)
 
-                stock_df = self.data_provider.get_bars(
+                stock_df = self.data_provider.get_dataframe(
                     symbol,
                     timeframe,
                     bars
                 )
 
-                benchmark_df = self.data_provider.get_bars(
+                benchmark_df = self.data_provider.get_dataframe(
                     benchmark,
                     timeframe,
                     bars
@@ -139,14 +139,14 @@ class RSATRRestAPI:
 
                 results = []
 
-                benchmark_df = self.data_provider.get_bars(
+                benchmark_df = self.data_provider.get_dataframe(
                     benchmark,
                     timeframe,
                     500
                 )
 
                 for symbol in symbols:
-                    stock_df = self.data_provider.get_bars(
+                    stock_df = self.data_provider.get_dataframe(
                         symbol,
                         timeframe,
                         500
