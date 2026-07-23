@@ -1,211 +1,183 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>HiWay RS+ATR Engine</title>
-
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HiWay RS+ATR Engine</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-
 <body>
 
-    <div class="hero">
-        <h1>HiWay RS+ATR Engine</h1>
+  <div class="hero">
+    <h1>HiWay RS+ATR Engine</h1>
+    <p>
+      Volatility-Adjusted Relative Strength Analysis for traders,
+      quantitative researchers, portfolio managers, and financial platforms.
+    </p>
+  </div>
 
-        <p>
-            Volatility-Adjusted Relative Strength Analysis for traders,
-            quantitative researchers, portfolio managers, and financial platforms.
-        </p>
+  <div class="container">
+
+    <div class="card">
+      <h2>Live Market Analysis Demo</h2>
+      <p>Enter a ticker symbol and analyze its RS+ATR regime relative to SPY.</p>
+
+      <label for="symbol" class="visually-hidden">Ticker symbol</label>
+      <input id="symbol" type="text" placeholder="AAPL" value="AAPL" aria-label="Ticker symbol">
+
+      <button id="analyzeBtn" type="button">Analyze</button>
+
+      <div class="quick-buttons" role="group" aria-label="Quick symbols">
+        <button type="button" onclick="setSymbol('AAPL')">AAPL</button>
+        <button type="button" onclick="setSymbol('MSFT')">MSFT</button>
+        <button type="button" onclick="setSymbol('NVDA')">NVDA</button>
+        <button type="button" onclick="setSymbol('TSLA')">TSLA</button>
+      </div>
     </div>
 
-    <div class="container">
+    <div id="results" aria-live="polite"></div>
 
-        <div class="card">
-
-            <h2>Live Market Analysis Demo</h2>
-
-            <p>
-                Enter a ticker symbol and analyze its RS+ATR regime relative to SPY.
-            </p>
-
-            <input
-                type="text"
-                id="symbol"
-                placeholder="AAPL"
-                value="AAPL">
-
-            <button onclick="analyze()">
-                Analyze
-            </button>
-
-            <div class="quick-buttons">
-                <button onclick="setSymbol('AAPL')">AAPL</button>
-                <button onclick="setSymbol('MSFT')">MSFT</button>
-                <button onclick="setSymbol('NVDA')">NVDA</button>
-                <button onclick="setSymbol('TSLA')">TSLA</button>
-            </div>
-
-        </div>
-
-        <div id="results"></div>
-
-        <div class="card">
-            <h3>API Resources</h3>
-
-            <p>
-                /docs
-            </p>
-
-            <p>
-                <a href="/health">Health Status</a>
-            </p>
-        </div>
-
+    <div class="card">
+      <h3>API Resources</h3>
+      <p>/docs</p>
+      <p><a href="/health">Health Status</a></p>
     </div>
 
-    <script>
+  </div>
 
-        function setSymbol(symbol) {
-            document.getElementById("symbol").value = symbol;
-        }
+  <script>
+    function setSymbol(symbol) {
+      const input = document.getElementById('symbol');
+      if (input) input.value = symbol;
+    }
 
-        async function analyze() {
+    function renderCard(container, title, children) {
+      container.innerHTML = '';
+      const card = document.createElement('div');
+      card.className = 'card';
+      if (title) {
+        const h = document.createElement('h2');
+        h.textContent = title;
+        card.appendChild(h);
+      }
+      children.forEach(child => card.appendChild(child));
+      container.appendChild(card);
+    }
 
-            const symbol =
-                document.getElementById("symbol").value.trim().toUpperCase();
+    function makeParagraph(labelText, valueText, valueIsHtml = false) {
+      const p = document.createElement('p');
+      const strong = document.createElement('strong');
+      strong.textContent = labelText;
+      p.appendChild(strong);
+      p.appendChild(document.createTextNode(' '));
+      if (valueIsHtml) {
+        const span = document.createElement('span');
+        span.innerHTML = valueText;
+        p.appendChild(span);
+      } else {
+        p.appendChild(document.createTextNode(valueText));
+      }
+      return p;
+    }
 
-            if (!symbol) {
-                return;
-            }
+    async function analyze() {
+      const analyzeBtn = document.getElementById('analyzeBtn');
+      const results = document.getElementById('results');
+      const symbolInput = document.getElementById('symbol');
 
-            try {
+      if (!symbolInput || !results) return;
 
-                const response = await fetch(
-                    "/api/v1/calculate",
-                    {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({
-                            symbol: symbol,
-                            benchmark: "SPY",
-                            timeframe: "1d",
-                            bars: 500
-                        })
-                    }
-                );
+      const symbol = symbolInput.value.trim().toUpperCase();
+      if (!symbol) return;
 
-                const data = await response.json();
+      analyzeBtn.disabled = true;
+      results.textContent = 'Loading...';
 
-                if (data.error) {
-
-                    document.getElementById("results").innerHTML =
-                        `
-                        <div class="card">
-                            <h3>Error</h3>
-                            <p style="color:#ef4444;">
-                                ${data.error}
-                            </p>
-                        </div>
-                        `;
-
-                    return;
-                }
-
-                const regime = data.current.regime;
-                const rsatr = data.current.rs_atr;
-
-                let regimeText = "Range-Bound";
-                let regimeColor = "#f59e0b";
-
-                if (regime > 0) {
-                    regimeText = "Bullish";
-                    regimeColor = "#10b981";
-                }
-
-                if (regime < 0) {
-                    regimeText = "Bearish";
-                    regimeColor = "#ef4444";
-                }
-
-                let strengthText = "Neutral";
-
-                if (rsatr > 0.5) {
-                    strengthText = "Strong";
-                }
-                else if (rsatr < -0.5) {
-                    strengthText = "Weak";
-                }
-
-                document.getElementById("results").innerHTML =
-                    `
-                    <div class="card">
-
-                        <h2>${data.symbol.toUpperCase()}</h2>
-
-                        <p>
-                            <strong>Strength:</strong>
-                            ${strengthText}
-                        </p>
-
-                        <p>
-                            <strong>RS+ATR:</strong>
-                            ${rsatr.toFixed(2)}
-                        </p>
-
-                        <p>
-                            <strong>Regime:</strong>
-                            <span style="color:${regimeColor}; font-weight:bold;">
-                                ${regimeText}
-                            </span>
-                        </p>
-
-                        <p>
-                            <strong>Close Price:</strong>
-                            $${data.current.close.toFixed(2)}
-                        </p>
-
-                        <p>
-                            <strong>Benchmark:</strong>
-                            SPY
-                        </p>
-
-                        <p>
-                            <strong>Updated:</strong>
-                            ${new Date(data.timestamp).toLocaleString()}
-                        </p>
-
-                    </div>
-                    `;
-
-            }
-            catch (error) {
-
-                document.getElementById("results").innerHTML =
-                    `
-                    <div class="card">
-                        <h3>Error</h3>
-
-                        <p style="color:#ef4444;">
-                            Unable to connect to the API.
-                        </p>
-                    </div>
-                    `;
-
-                console.error(error);
-            }
-        }
-
-        document.addEventListener("DOMContentLoaded", () => {
-            analyze();
+      try {
+        const response = await fetch('/api/v1/calculate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            symbol: symbol,
+            benchmark: 'SPY',
+            timeframe: '1d',
+            bars: 500
+          })
         });
 
-    </script>
+        if (!response.ok) {
+          const text = await response.text().catch(() => '');
+          throw new Error(text || `HTTP ${response.status}`);
+        }
+
+        const data = await response.json().catch(() => { throw new Error('Invalid JSON from API'); });
+
+        if (!data) throw new Error('Empty response from API');
+
+        if (data.error) {
+          const errP = document.createElement('p');
+          errP.style.color = '#ef4444';
+          errP.textContent = data.error;
+          renderCard(results, 'Error', [errP]);
+          return;
+        }
+
+        const current = data.current || {};
+        const regime = Number(current.regime) || 0;
+        const rsatr = Number(current.rs_atr) || 0;
+        const close = typeof current.close === 'number' ? current.close : null;
+        const timestamp = data.timestamp ? new Date(data.timestamp) : null;
+
+        let regimeText = 'Range-Bound';
+        let regimeColor = '#f59e0b';
+        if (regime > 0) { regimeText = 'Bullish'; regimeColor = '#10b981'; }
+        if (regime < 0) { regimeText = 'Bearish'; regimeColor = '#ef4444'; }
+
+        let strengthText = 'Neutral';
+        if (rsatr > 0.5) strengthText = 'Strong';
+        else if (rsatr < -0.5) strengthText = 'Weak';
+
+        const children = [];
+
+        const hClose = document.createElement('h2');
+        hClose.textContent = (data.symbol || symbol).toUpperCase();
+        children.push(hClose);
+
+        children.push(makeParagraph('Strength:', strengthText));
+        children.push(makeParagraph('RS+ATR:', isNaN(rsatr) ? 'N/A' : rsatr.toFixed(2)));
+        const regimeP = makeParagraph('Regime:', regimeText);
+        const regimeSpan = document.createElement('span');
+        regimeSpan.style.color = regimeColor;
+        regimeSpan.style.fontWeight = 'bold';
+        regimeSpan.textContent = regimeText;
+        // replace last text node with colored span
+        regimeP.removeChild(regimeP.lastChild);
+        regimeP.appendChild(regimeSpan);
+        children.push(regimeP);
+
+        children.push(makeParagraph('Close Price:', close !== null ? `$${close.toFixed(2)}` : 'N/A'));
+        children.push(makeParagraph('Benchmark:', 'SPY'));
+        children.push(makeParagraph('Updated:', timestamp && !isNaN(timestamp) ? timestamp.toLocaleString() : 'N/A'));
+
+        renderCard(results, null, children);
+
+      } catch (err) {
+        const errP = document.createElement('p');
+        errP.style.color = '#ef4444';
+        errP.textContent = 'Unable to connect to the API.';
+        renderCard(results, 'Error', [errP]);
+        console.error(err);
+      } finally {
+        analyzeBtn.disabled = false;
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('analyzeBtn').addEventListener('click', analyze);
+      // Optionally run once on load
+      analyze();
+    });
+  </script>
 
 </body>
-
 </html>
