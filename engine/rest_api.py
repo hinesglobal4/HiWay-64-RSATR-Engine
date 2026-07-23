@@ -24,7 +24,18 @@ class RSATRRestAPI:
     def __init__(self, engine: RSATREngine, data_provider):
         self.engine = engine
         self.data_provider = data_provider
-        self.app = Flask(__name__)
+import os
+
+base_dir = os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__))
+)
+
+self.app = Flask(
+    __name__,
+    template_folder=os.path.join(base_dir, "templates"),
+    static_folder=os.path.join(base_dir, "static")
+)
+
         self._setup_routes()
     
     def _setup_routes(self):
