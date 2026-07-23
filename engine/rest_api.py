@@ -21,7 +21,7 @@ from .data_provider import DataAggregator, AlpacaDataProvider, YahooFinanceDataP
 class RSATRRestAPI:
     """REST API wrapper for RSATR engine"""
     
-    def __init__(self, engine: RSATREngine, data_provider):
+        def __init__(self, engine: RSATREngine, data_provider):
         self.engine = engine
         self.data_provider = data_provider
 import os
@@ -38,7 +38,7 @@ self.app = Flask(
 
 self._setup_routes()
     
-    def _setup_routes(self):
+        def _setup_routes(self):
         """Setup Flask routes"""
 
         @self.app.route('/')
@@ -137,13 +137,13 @@ self._setup_routes()
                 )
                 return jsonify({'status': 'updated'})
     
-    def run(self, host: str = '0.0.0.0', port: int = 5000, debug: bool = False):
+        def run(self, host: str = '0.0.0.0', port: int = 5000, debug: bool = False):
         """Start Flask server"""
         self.app.run(host=host, port=port, debug=debug)
 
 
-def create_api_server(config_dict: Dict[str, Any] = None) -> Flask:
-    """Factory function to create configured API server"""
+        def create_api_server(config_dict: Dict[str, Any] = None) -> Flask:
+        """Factory function to create configured API server"""
     
     config = config_dict or {
         'data_provider': 'yahoo',
