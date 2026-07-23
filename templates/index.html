@@ -1,122 +1,211 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>HiWay RS+ATR Engine</title>
-    /static/style.css
+
+    static', filename='style.css') }}">
 </head>
+
 <body>
+
     <div class="hero">
+        <h1>HiWay RS+ATR Engine</h1>
 
-    <h1>HiWay RS+ATR Engine</h1>
+        <p>
+            Volatility-Adjusted Relative Strength Analysis for traders,
+            quantitative researchers, portfolio managers, and financial platforms.
+        </p>
+    </div>
 
-    <p>
-        Volatility-Adjusted Relative Strength Analysis
-        for traders, quantitative researchers,
-        and portfolio analysts.
-    </p>
+    <div class="container">
 
-</div>
+        <div class="card">
 
-<div class="container">
+            <h2>Live Market Analysis Demo</h2>
 
-    <h1>HiWay RS+ATR Trade Engine</h1>
+            <p>
+                Enter a ticker symbol and analyze its RS+ATR regime relative to SPY.
+            </p>
 
-    <p>
-        Relative Strength + ATR Regime Analysis
-    </p>
+            <input
+                type="text"
+                id="symbol"
+                placeholder="AAPL"
+                value="AAPL">
 
-    <div class="card">
+            <button onclick="analyze()">
+                Analyze
+            </button>
 
-        <h2>Symbol Analysis</h2>
+            <div class="quick-buttons">
+                <button onclick="setSymbol('AAPL')">AAPL</button>
+                <button onclick="setSymbol('MSFT')">MSFT</button>
+                <button onclick="setSymbol('NVDA')">NVDA</button>
+                <button onclick="setSymbol('TSLA')">TSLA</button>
+            </div>
 
-        <input
-            type="text"
-            id="symbol"
-            placeholder="AAPL"
-        >
+        </div>
 
-        <div class="quick-buttons">
+        <div id="results"></div>
 
-    <button onclick="setSymbol('AAPL')">
-        AAPL
-    </button>
+        <div class="card">
+            <h3>API Resources</h3>
 
-    <button onclick="setSymbol('MSFT')">
-        MSFT
-    </button>
+            <p>
+                /docs
+            </p>
 
-    <button onclick="setSymbol('TSLA')">
-        TSLA
-    </button>
-
-    <button onclick="setSymbol('NVDA')">
-        NVDA
-    </button>
-
-</div>
-
-        <button onclick="analyze()">
-            Analyze
-        </button>
+            <p>
+                /healthHealth Status</a>
+            </p>
+        </div>
 
     </div>
 
-    <div id="results"></div>
+    <script>
 
-</div>
-
-<script>
-
-function setSymbol(symbol) {
-    document.getElementById("symbol").value = symbol;
-}
-
-async function analyze() {
-
-    const symbol =
-        document.getElementById("symbol").value;
-
-    const response = await fetch(
-        "/api/v1/calculate",
-        {
-            method: "POST",
-            headers:{
-                "Content-Type":"application/json"
-            },
-            body: JSON.stringify({
-                symbol:symbol,
-                benchmark:"SPY",
-                timeframe:"1d",
-                bars:500
-            })
+        function setSymbol(symbol) {
+            document.getElementById("symbol").value = symbol;
         }
-    );
 
-    const data = await response.json();
+        async function analyze() {
 
-    document.getElementById("results").innerHTML =
-    `
-        <div class="card">
-            <h3>${data.symbol}</h3>
+            const symbol =
+                document.getElementById("symbol").value.trim().toUpperCase();
 
-            <p>RS+ATR:
-            <strong>${data.current.rs_atr}</strong>
-            </p>
+            if (!symbol) {
+                return;
+            }
 
-            <p>
-            Regime:
-            <strong>${data.current.regime}</strong>
-            </p>
+            try {
 
-            <p>
-            Close:
-            <strong>${data.current.close}</strong>
-            </p>
-        </div>
-    `;
-}
+                const response = await fetch(
+                    "/api/v1/calculate",
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            symbol: symbol,
+                            benchmark: "SPY",
+                            timeframe: "1d",
+                            bars: 500
+                        })
+                    }
+                );
 
-</script>
+                const data = await response.json();
+
+                if (data.error) {
+
+                    document.getElementById("results").innerHTML =
+                        `
+                        <div class="card">
+                            <h3>Error</h3>
+                            <p style="color:#ef4444;">
+                                ${data.error}
+                            </p>
+                        </div>
+                        `;
+
+                    return;
+                }
+
+                const regime = data.current.regime;
+                const rsatr = data.current.rs_atr;
+
+                let regimeText = "Range-Bound";
+                let regimeColor = "#f59e0b";
+
+                if (regime > 0) {
+                    regimeText = "Bullish";
+                    regimeColor = "#10b981";
+                }
+
+                if (regime < 0) {
+                    regimeText = "Bearish";
+                    regimeColor = "#ef4444";
+                }
+
+                let strengthText = "Neutral";
+
+                if (rsatr > 0.5) {
+                    strengthText = "Strong";
+                }
+                else if (rsatr < -0.5) {
+                    strengthText = "Weak";
+                }
+
+                document.getElementById("results").innerHTML =
+                    `
+                    <div class="card">
+
+                        <h2>${data.symbol.toUpperCase()}</h2>
+
+                        <p>
+                            <strong>Strength:</strong>
+                            ${strengthText}
+                        </p>
+
+                        <p>
+                            <strong>RS+ATR:</strong>
+                            ${rsatr.toFixed(2)}
+                        </p>
+
+                        <p>
+                            <strong>Regime:</strong>
+                            <span style="color:${regimeColor}; font-weight:bold;">
+                                ${regimeText}
+                            </span>
+                        </p>
+
+                        <p>
+                            <strong>Close Price:</strong>
+                            $${data.current.close.toFixed(2)}
+                        </p>
+
+                        <p>
+                            <strong>Benchmark:</strong>
+                            SPY
+                        </p>
+
+                        <p>
+                            <strong>Updated:</strong>
+                            ${new Date(data.timestamp).toLocaleString()}
+                        </p>
+
+                    </div>
+                    `;
+
+            }
+            catch (error) {
+
+                document.getElementById("results").innerHTML =
+                    `
+                    <div class="card">
+                        <h3>Error</h3>
+
+                        <p style="color:#ef4444;">
+                            Unable to connect to the API.
+                        </p>
+                    </div>
+                    `;
+
+                console.error(error);
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            analyze();
+        });
+
+    </script>
 
 </body>
+
 </html>
