@@ -36,7 +36,7 @@ self.app = Flask(
     static_folder=os.path.join(base_dir, "static")
 )
 
-        self._setup_routes()
+self._setup_routes()
     
     def _setup_routes(self):
         """Setup Flask routes"""
