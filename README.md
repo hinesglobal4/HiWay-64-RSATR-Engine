@@ -1,4 +1,4 @@
-# HiWay RS+ATR Trade Engine
+# HiWay RS+ATR Validation Engine
 
 A production-ready technical analysis indicator engine that evaluates market regime conditions through relative strength and volatility analysis. Built for traders, developers, and financial platforms.
 
